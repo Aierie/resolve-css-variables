@@ -62,10 +62,6 @@ function variablesInValue(value: string){
     return value.match(readVariableRegex);
 }
 
-function containsVariable(value: string) {
-    return readVariableRegex.test(value);
-}
-
 function matchesSelector(selector: string, node: css.Rule){
     return node.selectors && node.selectors.length === 1 && node.selectors[0] === selector
 }
