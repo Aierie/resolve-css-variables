@@ -1,42 +1,5 @@
 import calc from 'reduce-css-calc';
 import css from 'css';
-const variableDeclaration1 = `
-:root {
-    --boxel-red: #ff0000;
-    --boxel-blue: blue;
-    --references-boxel-blue: var(--boxel-blue);
-    --silly: silly;
-    --putty: putty;
-    --silly-putty: var(--silly) var(--putty);
-    --silly-putty-silly-putty: var(--silly-putty) var(--silly-putty) var(--snoop);
-    --calc-one: calc(5 * 5px);
-    --calc-two: calc(var(--calc-one) * 3);
-    color: black;
-}
-
-.boop {
-    --boxel-boop: boop;
-}
-
-.beep .boop {
-    --boxel-beep-boop: boopbeep;
-}
-
-/* haha a comment */
-
-.beep.boop  {
-    --boxel-beep-boop: boopbeep;
-}
-`
-
-const variableDeclaration2 = `
-:root {
-    --boxel-sp-1: 1px;
-    --boxel-sp-2: 2px;
-    --boxel-shadow: 1px solid var(--boxel-blue);
-    --boxel-reference-shadow: 1px solid var(--references-boxel-blue);
-}
-`;
 
 const readVariableRegex = /(?<=var\()(--.+?)(?=\))/g;
 
@@ -105,11 +68,6 @@ function getVariablesFromStylesheet(stylesheet: css.Stylesheet){
     return res;
 }
 
-const rawVariables = {
-    ...getVariablesFromStylesheet(css.parse(variableDeclaration1)),
-    ...getVariablesFromStylesheet(css.parse(variableDeclaration2)),
-}
-
 // resolve all var(--) references in values
 function resolveVariableValues(
     rawVariables: { [variable: string]: string }, 
@@ -171,6 +129,49 @@ function getUnresolvedNames(rawVariables: { [variable: string]: string }){
         }
     }
     return res;
+}
+
+const variableDeclaration1 = `
+:root {
+    --boxel-red: #ff0000;
+    --boxel-blue: blue;
+    --references-boxel-blue: var(--boxel-blue);
+    --silly: silly;
+    --putty: putty;
+    --silly-putty: var(--silly) var(--putty);
+    --silly-putty-silly-putty: var(--silly-putty) var(--silly-putty) var(--snoop);
+    --calc-one: calc(5 * 5px);
+    --calc-two: calc(var(--calc-one) * 3);
+    color: black;
+}
+
+.boop {
+    --boxel-boop: boop;
+}
+
+.beep .boop {
+    --boxel-beep-boop: boopbeep;
+}
+
+/* haha a comment */
+
+.beep.boop  {
+    --boxel-beep-boop: boopbeep;
+}
+`
+
+const variableDeclaration2 = `
+:root {
+    --boxel-sp-1: 1px;
+    --boxel-sp-2: 2px;
+    --boxel-shadow: 1px solid var(--boxel-blue);
+    --boxel-reference-shadow: 1px solid var(--references-boxel-blue);
+}
+`;
+
+const rawVariables = {
+    ...getVariablesFromStylesheet(css.parse(variableDeclaration1)),
+    ...getVariablesFromStylesheet(css.parse(variableDeclaration2)),
 }
 
 console.log(resolveVariableValues(rawVariables));
