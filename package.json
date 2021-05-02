@@ -1,0 +1,28 @@
+{
+  "name": "resolve-css-variables",
+  "version": "0.0.1",
+  "description": "Package to resolve css variables given strings containing declarations.",
+  "main": "index.js",
+  "scripts": {
+    "start": "yarn tsc && node ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aierie",
+  "license": "ISC",
+  "dependencies": {
+    "@types/css": "^0.0.31",
+    "css": "^3.0.0",
+    "reduce-css-calc": "^2.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^15.0.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "node_modules/*",
+      "dist/*"
+    ]
+  }
+}
