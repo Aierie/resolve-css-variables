@@ -1,6 +1,8 @@
 import calc from 'reduce-css-calc';
 import css from 'css';
 
+import { parseString, resolveFromLookups, ParsedLiteral, ParsedVariable } from './parse';
+
 /**
  * A POJO that maps css variables to values
  */
@@ -40,38 +42,6 @@ function isVariable(declaration: css.Declaration) {
 }
 
 /**
- * Replaces variable reads within the string with static values if found within the provided lookup
- * 
- * @param {VariableDict} lookup 
- * @param {string} value The value to carry out replacement on
- * @param {string[]} dependencies The variables that are read in this value
- * @returns The value with its dependencies replaced
- */
-function replaceVariables(lookup: VariableDict, value: string, dependencies: string[]): string {
-    let res = value;
-    for (const dependency of dependencies) {
-        const dependencyValue = lookup[dependency];
-        if (dependencyValue) {
-            // maybe should add a step to remove spaces at the beginning
-            // instead of trying to handle this at this step
-            const regex = new RegExp('var\\(\\s*' + dependency + '\\s*\\)', 'g');
-            res = res.replace(regex, dependencyValue);
-        }
-    }
-    return res;
-}
-
-/**
- * Finds all css variables read in a string
- * 
- * @param {string} value
- * @returns An array of css variables that were read within this string
- */
-function variablesInValue(value: string): string[] {
-    return value.match(/(?<=var\()(--.+?)(?=\))/g) || [];
-}
-
-/**
  * Iterates over a stylesheet's nodes to find all variables within the provided selector's scope
  * 
  * @param {css.Stylesheet} stylesheet
@@ -101,66 +71,37 @@ function getVariablesFromStylesheet(stylesheet: css.Stylesheet, selector: string
 }
 
 /**
- * Looks for variables that are read within the VariableDict's values but do not exist within the VariableDict
- * 
- * @param {VariableDict} variables
- * @returns Variables that don't exist as a VariableDict<true> for easier lookup
- */
-function getUnresolvedNames(variables: VariableDict): VariableDict<true> {
-    const res: VariableDict<true> = {}
-    for (const variable in variables) {
-        const value = variables[variable];
-        const dependencies = variablesInValue(value);
-        for (const dependency of dependencies) {
-            if (!variables[dependency]) res[dependency] = true;
-        }
-    }
-    return res;
-}
-
-/**
  * Parses strings as css stylesheets to create a reference for their absolute/resolved string values
  * 
  * @param {string[]} content List of strings, in order, to parse for variables
  * @param {string} [selector=':root'] A selector to scope the search for variables 
  * @returns {{resolved: VariableDict, failed: string[]}} Resolved variables with absolute values + a list of the variables that failed to be resolved.
  */
-export default function resolveVariables(content: string[], selector: string=':root'): { resolved: VariableDict, failed: string[] } {
+export default function resolveCssVariables(content: string[], selector: string=':root'): { resolved: VariableDict, failed: string[] } {
     const rawVariables = content.reduce((previous: VariableDict, contents: string) => ({ ...previous, ...getVariablesFromStylesheet(css.parse(contents), selector)}), {});
-    const copy = (value: Object) => JSON.parse(JSON.stringify(value));
     const resolved : VariableDict = {};
+    const failed: VariableDict<true> = {};
+    const parsedVariables: Record<string, (ParsedVariable | ParsedLiteral)[]> = {};
+    for (const variable in rawVariables) {
+      parsedVariables[variable] = parseString(rawVariables[variable]);
+      if (parsedVariables[variable].length === 1 && parsedVariables[variable][0].type === 'literal') {
+        resolved[variable] = (parsedVariables[variable][0] as ParsedLiteral).value;
+      }
+    }
 
-    /**
-     * Some inefficiency in iteration here - see the unresolved/nextUnresolved interactions w the loops
-     */
-    let failed: VariableDict<true> = getUnresolvedNames(rawVariables);
-    let unresolved : VariableDict = copy(rawVariables);
-    let nextUnresolved : VariableDict = {};
-    while (Object.keys(unresolved).length) {
-        for (const variable in unresolved) {
-            if (failed[variable]) {
-                continue;
-            }
+    for (const variable in parsedVariables) {
+      const res = resolveFromLookups(parsedVariables[variable], resolved, parsedVariables, failed);
+      if (res) {
+        resolved[variable] = res;
+      } else {
+        failed[variable] = true;
+      }
+    }
 
-            const value = unresolved[variable];
-            if (!value) {
-                failed[variable] = true;
-            } else {
-                const dependsOnVariables = variablesInValue(value);
-                if (dependsOnVariables?.length) {
-                    if (dependsOnVariables.some(variable => failed[variable])) {
-                        failed[variable] = true;
-                        continue;
-                    }
-
-                    nextUnresolved[variable] = replaceVariables(resolved, value, dependsOnVariables);
-                } else {
-                    resolved[variable] = calc(value);
-                }
-            }
-        }
-        unresolved = copy(nextUnresolved);
-        nextUnresolved = {};
+    for (const variable in resolved) {
+      // we do this here for the side-effect definitions from resolveFromLookups
+      // which we should definitely refactor out in the future
+      resolved[variable] = calc(resolved[variable]);
     }
 
     return {
@@ -168,3 +109,27 @@ export default function resolveVariables(content: string[], selector: string=':r
         failed: Object.keys(failed)
     }
 }
+
+// console.log(resolveCssVariables([
+//     `
+//       :root {
+//           --bop: black;
+//           --boop: var(--bop) o;
+//           --bash: throw me a var(--basher, var(--bang, var(--nope, nope)));
+//           --bang: var(--goop, loop);
+//           --geek: var(--nonexistent);
+
+//           --calculated: calc(var(--one) + calc(var(--two) * 2));
+//           --one: 1px;
+//           --two: 1rem;
+//       }
+//     `
+// ]));
+
+// console.log(resolveCssVariables([
+//   `
+//   :root {
+// 	  --theme-color: var(--light, white);
+// 	}
+//   `
+// ]))

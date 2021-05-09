@@ -50,7 +50,16 @@ test("Returns failed, an array with variables it couldn\'t resolve", t => {
 	  --theme-color: var(--light);
 	}
 	`], ':root');
-	t.true(variables.failed.length == 2);
+	t.deepEqual(variables.failed.length, 2);
 	t.true(variables.failed.includes('--light'));
 	t.true(variables.failed.includes('--theme-color'));
+});
+
+test("It replaces a single variable with its fallback correctly", t => {
+	const variables = resolveCssVariables([`
+	:root {
+	  --theme-color: var(--light, white);
+	}
+	`], ':root');
+	t.deepEqual(variables.resolved['--theme-color'], 'white');
 });
