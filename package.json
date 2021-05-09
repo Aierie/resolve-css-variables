@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "start": "yarn tsc && node ./dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "ava src/test.ts"
   },
   "author": "Aierie",
   "license": "ISC",
@@ -18,6 +18,8 @@
     "reduce-css-calc": "^2.1.8"
   },
   "devDependencies": {
+    "@ava/typescript": "^1.1.1",
+    "ava": "^3.15.0",
     "@types/node": "^15.0.1",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
@@ -27,5 +29,12 @@
       "node_modules/*",
       "dist/*"
     ]
+  },
+  "ava": {
+    "typescript": {
+      "rewritePaths": {
+        "src/": "dist/"
+      }
+    }
   }
 }
