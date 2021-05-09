@@ -9,7 +9,7 @@ interface VariableDict<T=string> {
 }
 
 /**
- * Checks whether a node parsed by @reworckss/css is a css rule
+ * Checks whether a node parsed by @reworkcss/css is a css rule
  * 
  * @param {css.Node} node
  * @returns Whether the node can be a css.Rule
@@ -20,7 +20,7 @@ function isRule(node: css.Rule | css.AtRule | css.Comment): node is css.Rule {
 }
 
 /**
- * Checks whether a node parsed by @reworckss/css is a css declaration
+ * Checks whether a node parsed by @reworkcss/css is a css declaration
  * 
  * @param {css.Node} node
  * @returns Whether the node can be a css.Declaration
@@ -30,7 +30,7 @@ function isDeclaration(node: css.Rule | css.Declaration): node is css.Declaratio
 }
 
 /**
- * Checks whether a declaration parsed by @reworckss/css is a css variable
+ * Checks whether a declaration parsed by @reworkcss/css is a css variable
  * 
  * @param {css.Declaration} declaration
  * @returns Whether the declaration is a variable
