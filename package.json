@@ -7,8 +7,9 @@
     "/dist"
   ],
   "scripts": {
-    "start": "yarn tsc && node ./dist/index.js",
-    "test": "ava src/test.ts"
+    "build": "yarn tsc",
+    "test": "yarn build && ava src/test.ts",
+    "test:watch": "nodemon --exec 'yarn test' ./src/*"
   },
   "author": "Aierie",
   "license": "ISC",
