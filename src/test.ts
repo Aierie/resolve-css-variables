@@ -40,7 +40,7 @@ test('Returns values for variables thta reference variables', t => {
 	t.deepEqual(variables.resolved, { '--dark': 'black', '--theme-color': 'black' });
 });
 
-test("Returns an array with variables it couldn\'t resolve", t => {
+test("Returns failed, an array with variables it couldn\'t resolve", t => {
 	const variables = resolveCssVariables([`
 	:root {
 	  --dark: black;
@@ -50,6 +50,7 @@ test("Returns an array with variables it couldn\'t resolve", t => {
 	  --theme-color: var(--light);
 	}
 	`], ':root');
+	t.true(variables.failed.length == 2);
 	t.true(variables.failed.includes('--light'));
 	t.true(variables.failed.includes('--theme-color'));
 });
