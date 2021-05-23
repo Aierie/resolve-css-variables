@@ -77,7 +77,7 @@ function getVariablesFromStylesheet(stylesheet: css.Stylesheet, selector: string
  * @param {string} [selector=':root'] A selector to scope the search for variables 
  * @returns {{resolved: VariableDict, failed: string[]}} Resolved variables with absolute values + a list of the variables that failed to be resolved.
  */
-export default function resolveCssVariables(content: string[], selector: string=':root'): { resolved: VariableDict, failed: string[] } {
+export default function resolveCssVariables(content: string[], selector: string=':root'): { raw: VariableDict, resolved: VariableDict, failed: string[] } {
     const rawVariables = content.reduce((previous: VariableDict, contents: string) => ({ ...previous, ...getVariablesFromStylesheet(css.parse(contents), selector)}), {});
     const resolved : VariableDict = {};
     const failed: VariableDict<true> = {};
@@ -105,6 +105,7 @@ export default function resolveCssVariables(content: string[], selector: string=
     }
 
     return {
+        raw: rawVariables,
         resolved,
         failed: Object.keys(failed)
     }
@@ -126,10 +127,10 @@ export default function resolveCssVariables(content: string[], selector: string=
 //     `
 // ]));
 
-// console.log(resolveCssVariables([
-//   `
-//   :root {
-// 	  --theme-color: var(--light, white);
-// 	}
-//   `
-// ]))
+console.log(resolveCssVariables([
+  `
+  :root {
+	  --theme-color: var(--light, white);
+	}
+  `
+]))
