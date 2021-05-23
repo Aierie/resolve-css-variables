@@ -127,10 +127,10 @@ export default function resolveCssVariables(content: string[], selector: string=
 //     `
 // ]));
 
-console.log(resolveCssVariables([
-  `
-  :root {
-	  --theme-color: var(--light, white);
-	}
-  `
-]))
+// console.log(resolveCssVariables([
+//   `
+//   :root {
+// 	  --theme-color: var(--light, white);
+// 	}
+//   `
+// ]))
