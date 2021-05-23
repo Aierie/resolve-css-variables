@@ -99,17 +99,21 @@ export function parseString(value: string) : (ParsedLiteral | ParsedVariable)[] 
   return res;
 }
 
-export function resolveFromLookups(parsed: (ParsedLiteral|ParsedVariable)[], lookup: Record<string, string>, remainingVariables: Record<string, (ParsedVariable|ParsedLiteral)[]>){
+export function resolveFromLookups(parsed: (ParsedLiteral|ParsedVariable)[], lookup: Record<string, string>, remainingVariables: Record<string, (ParsedVariable|ParsedLiteral)[]>, failed: Record<string, true>){
   const _resolve = (o: ParsedVariable): string | undefined => {
     if (lookup[o.variableName]) {
       return lookup[o.variableName];
     } else {
       if (remainingVariables[o.variableName]) {
-        let resolved = resolveFromLookups(remainingVariables[o.variableName], lookup, remainingVariables);
+        let resolved = resolveFromLookups(remainingVariables[o.variableName], lookup, remainingVariables, failed);
         if (resolved) {
-            lookup[o.variableName] = resolved; 
-            return resolved;
+          lookup[o.variableName] = resolved; 
+          return resolved;
+        } else {
+          failed[o.variableName] = true;
         }
+      } else {
+        failed[o.variableName] = true;
       }
 
       if (o.fallback) {
