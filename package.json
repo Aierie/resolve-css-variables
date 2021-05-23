@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "yarn tsc",
+    "proto": "yarn build && node dist/index.js",
     "test": "yarn build && ava src/test.ts",
     "test:watch": "nodemon --exec 'yarn test' ./src/*"
   },
