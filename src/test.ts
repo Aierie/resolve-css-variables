@@ -67,10 +67,10 @@ test("It replaces a single variable with its fallback correctly", t => {
 test("It replaces a nested variable with the resolved value when resolvable", t => {
 	const variables = resolveCssVariables([`
 	:root {
-	  --theme-color: var(--light, var(--whitish, #fffffe));
+	  --theme-color: var( --light , var(--whitish, #fffffe));
 	  --whitish: snow;
 
-	  --theme-background: var(--dark, var(--darkish));
+	  --theme-background: var(--dark, var( --darkish));
 	  --darkish: var(--black, #000);
 	}
 	`], ':root');

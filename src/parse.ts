@@ -1,10 +1,10 @@
 const regexes = {
-  literal: /^.+?(?=var\(--.+?\)|$)/,
-  variable: /^var\(--.+?(?<!\\)\)/,
+  literal: /^.+?(?=var\(\s*--.+?\)|$)/,
+  variable: /^var\(\s*--.+?(?<!\\)\)/,
   remainingBracket: /^\s*\)/,
-  varStartGlobal: /var\(--/g, // don't use this for test since lastIndex will move
-  varStart: /var\(--/,
-  variableName: /(?<=var\()(--.+?)(?=(,|\)))/,
+  varStartGlobal: /var\(\s*--/g, // don't use this for test since lastIndex will move
+  varStart: /var\(\s*--/,
+  variableName: /(?<=var\()(\s*--.+?)(?=(,|\)))/,
 }
 
 export interface ParsedLiteral {
