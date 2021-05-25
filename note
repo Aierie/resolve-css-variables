@@ -1,0 +1,2 @@
+- commas and parens in variables are not parsed by reworkcss and so do not work with this project
+- consider postcss-value-parser instead of regex-based parsing
