@@ -1,7 +1,8 @@
 import calc from 'reduce-css-calc';
 import css from 'css';
 
-import { parseString, resolveFromLookups, ParsedLiteral, ParsedVariable } from './parse';
+import { parseString, resolveFromLookups } from './parse';
+import { Node } from 'postcss-value-parser';
 
 /**
  * A POJO that maps css variables to values
@@ -81,21 +82,13 @@ export default function resolveCssVariables(content: string[], selector: string=
     const rawVariables = content.reduce((previous: VariableDict, contents: string) => ({ ...previous, ...getVariablesFromStylesheet(css.parse(contents), selector)}), {});
     const resolved : VariableDict = {};
     const failed: VariableDict<true> = {};
-    const parsedVariables: Record<string, (ParsedVariable | ParsedLiteral)[]> = {};
+    const parsedVariables: Record<string, Node[]> = {};
     for (const variable in rawVariables) {
       parsedVariables[variable] = parseString(rawVariables[variable]);
-      if (parsedVariables[variable].length === 1 && parsedVariables[variable][0].type === 'literal') {
-        resolved[variable] = (parsedVariables[variable][0] as ParsedLiteral).value;
-      }
     }
 
     for (const variable in parsedVariables) {
-      const res = resolveFromLookups(parsedVariables[variable], resolved, parsedVariables, failed);
-      if (res) {
-        resolved[variable] = res;
-      } else {
-        failed[variable] = true;
-      }
+      resolveFromLookups(parsedVariables, resolved, failed, variable);
     }
 
     for (const variable in resolved) {
@@ -114,12 +107,6 @@ export default function resolveCssVariables(content: string[], selector: string=
 // console.log(resolveCssVariables([
 //     `
 //       :root {
-//           --bop: black;
-//           --boop: var(--bop) o;
-//           --bash: throw me a var(--basher, var(--bang, var(--nope, nope)));
-//           --bang: var(--goop, loop);
-//           --geek: var(--nonexistent);
-
 //           --calculated: calc(var(--one) + calc(var(--two) * 2));
 //           --one: 1px;
 //           --two: 1rem;

@@ -14,6 +14,16 @@ test('Returns variables for provided scope only', t => {
 	t.deepEqual(variables.resolved, { '--light': 'white' });
 });
 
+test('Ignores comments', t => {
+	const variables = resolveCssVariables([`
+	:root {
+	  --dark: black; /* should not see this */
+	  --blue: blue/* or this */;
+	}
+	`], ':root');
+	t.deepEqual(variables.resolved, { '--dark': 'black', '--blue': 'blue' });
+});
+
 test('Returns variables for :root if scope not provided', t => {
 	const variables = resolveCssVariables([`
 	:root {
@@ -27,7 +37,7 @@ test('Returns variables for :root if scope not provided', t => {
 	t.deepEqual(variables.resolved, { '--dark': 'black' });
 });
 
-test('Returns values for variables thta reference variables', t => {
+test('Returns values for variables that reference variables', t => {
 	const variables = resolveCssVariables([`
 	:root {
 	  --dark: black;
@@ -50,6 +60,7 @@ test("Returns failed, an array with variables it couldn\'t resolve", t => {
 	  --theme-color: var(--light);
 	}
 	`], ':root');
+
 	t.deepEqual(variables.failed.length, 2);
 	t.true(variables.failed.includes('--light'));
 	t.true(variables.failed.includes('--theme-color'));
@@ -85,4 +96,28 @@ test("It replaces a nested variable with its fallback when unresolvable", t => {
 	}
 	`], ':root');
 	t.deepEqual(variables.resolved['--theme-color'], '#fffffe');
+});
+
+test("It can resolve values using css functions", t => {
+	const variables = resolveCssVariables([`
+	:root {
+	  --background-color: rgba(0, 0, 0, var(--opacity));
+	  --opacity: 0.5;
+
+	  --theme-color: var(--nonexistent-color, rgb(242, var(--green), 22));
+	  --green: 45;
+	}
+	`], ':root');
+	t.deepEqual(variables.resolved['--background-color'], 'rgba(0, 0, 0, 0.5)');
+	t.deepEqual(variables.resolved['--theme-color'], 'rgb(242, 45, 22)');
+});
+
+test("It reduces nested calc", t => {
+	const variables = resolveCssVariables([`
+	:root {
+	  --width: calc(calc(var(--factor) * 4px) + 2rem);
+	  --factor: 0.5;
+	}
+	`], ':root');
+	t.deepEqual(variables.resolved['--width'], 'calc(2px + 2rem)');
 });
