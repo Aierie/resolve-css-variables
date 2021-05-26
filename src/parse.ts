@@ -1,139 +1,82 @@
-const regexes = {
-  literal: /^.+?(?=var\(\s*--.+?\)|$)/,
-  variable: /^var\(\s*--.+?(?<!\\)\)/,
-  remainingBracket: /^\s*\)/,
-  varStartGlobal: /var\(\s*--/g, // don't use this for test since lastIndex will move
-  varStart: /var\(\s*--/,
-  variableName: /(?<=var\()(\s*--.+?)(?=(,|\)))/,
+import parser, {
+  FunctionNode,
+  Node,
+  WordNode
+} from 'postcss-value-parser';
+
+export function parseString(value: string): Node[] {
+  return parser(value).nodes;
 }
 
-export interface ParsedLiteral {
-  value: string
-  type: 'literal'
+function isVar(node: Node): node is FunctionNode {
+  return node.type === "function" && node.value === "var";
 }
 
-export interface ParsedVariable {
-  type: 'variable'
-  rawValue: string
-  variableName: string
-  fallback: ParsedVariable | ParsedLiteral | null
-}
+export function resolveFromLookups(remaining: Record<string, Node[]>, resolved: Record<string, string>, failed: Record<string, true>, variableName: string): WordNode | null {
+  // for (let variableName in remaining) {
+  //   if (resolved[variableName] || failed[variableName]) continue;
+  //   resolveFromLookups(remaining, resolved, failed, variableName);
+  // }
 
-function parseVariable(readVariable: string): ParsedVariable {
-  let res: Record<string, any> = {
-    type: 'variable',
-    rawValue: readVariable,
-  };
-
-  let variable = readVariable.match(regexes.variableName)?.[0]!.trim();
-  const fallback = readVariable.match(new RegExp(`(?<=^var\\(\\s*${variable}\\s*,\\s*)(.+?)(?=\\)$)`))?.[0]?.trim();
-
-  res.variableName = variable;
-
-  if (fallback !== undefined && fallback !== null) {
-    if (regexes.varStart.test(fallback)) {
-      res.fallback = parseVariable(fallback);
-    } else {
-      res.fallback = {
-        value: fallback,
-        type: 'literal'
-      } as ParsedLiteral
-    }
-  } else {
-    res.fallback = null;
-  }
-
-  return res as ParsedVariable;
-}
-
-export function parseString(value: string) : (ParsedLiteral | ParsedVariable)[] {
-  let res = [];
-  let unparsed = value;
-  let currentlyMatching = 'variable';
-
-  while (unparsed.length) {
-    if (currentlyMatching === 'variable') {
-      let match = unparsed.match(regexes.variable);
-      if (match) {
-        let matchedValue: string = match[0];
-        let varsWithinMatchedValue = (matchedValue.match(regexes.varStartGlobal)?.length)!;
-        if (varsWithinMatchedValue > 1) {
-            // - 1 because we should already have one closing bracket
-            for (let i=0; i < varsWithinMatchedValue - 1; i++) {
-              let temp = unparsed.slice(matchedValue.length);
-              let remainingBracket = temp.match(regexes.remainingBracket)?.[0];
+  if (resolved[variableName] !== null && resolved[variableName] !== undefined) {
+    return { type: 'word', value: resolved[variableName] } as WordNode;
+  } 
   
-              // not handling missing remaining bracket.
-              // not having a remaining bracket means invalid css
-              if (!remainingBracket) {
-                throw new Error(`Resolving css variables - parsed string "${matchedValue}" is missing a closing bracket`);
-              }
+  if (failed[variableName]) {
+    return null;
+  } 
   
-              matchedValue += remainingBracket;
-            }
-        }
+  if (remaining[variableName]) {
+    let resolvedNode = resolveNodeArray(remaining, resolved, failed, remaining[variableName]);
 
-        res.push(
-          parseVariable(matchedValue)
-        );
-        
-        unparsed = unparsed.slice(matchedValue.length);
-      }
-      currentlyMatching = 'literal';
-    } else if (currentlyMatching === 'literal') {
-      let match = unparsed.match(regexes.literal);
-      if (match) {
-        let matchedValue = match[0];
-        res.push(
-          { 
-            value: matchedValue, 
-            type: 'literal'
-          } as ParsedLiteral
-        );
-        unparsed = unparsed.slice(matchedValue.length);
-      }
-      currentlyMatching = 'variable';
+    if (!resolvedNode) {
+      failed[variableName] = true;
+      return null;
     }
-  }
 
-  return res;
+    resolved[variableName] = resolvedNode.value;
+    return resolvedNode;
+  } 
+
+  return null;
 }
 
-export function resolveFromLookups(parsed: (ParsedLiteral|ParsedVariable)[], lookup: Record<string, string>, remainingVariables: Record<string, (ParsedVariable|ParsedLiteral)[]>, failed: Record<string, true>){
-  const _resolve = (o: ParsedVariable): string | undefined => {
-    if (lookup[o.variableName]) {
-      return lookup[o.variableName];
-    } else {
-      if (remainingVariables[o.variableName]) {
-        let resolved = resolveFromLookups(remainingVariables[o.variableName], lookup, remainingVariables, failed);
-        if (resolved) {
-          lookup[o.variableName] = resolved; 
-          return resolved;
+function replaceNodeContentsWith(node: Node, wordNode: WordNode){
+  node.type = 'word';
+  node.value = wordNode.value;
+  return node as WordNode;
+}
+
+// need to walk to get to nested 'var' declarations
+function resolveNodeArray(remaining: Record<string, Node[]>, resolved: Record<string, string>, failed: Record<string, true>, nodeArray: Node[]): WordNode | null {
+  if (!nodeArray.length) return null;
+  let terminated = false;
+
+  parser.walk(nodeArray, function(node){
+    if (terminated) return false;
+    if (isVar(node)) {
+      let variableName = node.nodes[0].value;
+      let fallbackNodeArray = node.nodes.slice(2);
+      let resolvedValue = resolveFromLookups(remaining, resolved, failed, variableName);
+      if (resolvedValue) {
+        replaceNodeContentsWith(node, resolvedValue);
+      } else {
+        failed[variableName] = true;
+        if (!fallbackNodeArray.length) {
+          terminated = true;
         } else {
-          failed[o.variableName] = true;
+          let fallback = resolveNodeArray(remaining, resolved, failed, fallbackNodeArray);
+          if (fallback !== null) {
+            replaceNodeContentsWith(node, fallback);
+          } else {
+            terminated = true;
+          }
         }
-      } else {
-        failed[o.variableName] = true;
       }
+      return false;
+    }
+  })
 
-      if (o.fallback) {
-        if (o.fallback.type === 'variable') return _resolve(o.fallback);
-        else return o.fallback.value;
-      } 
-    }
-  }
-  let res = '';
-  for (let o of parsed) {
-    if (o.type === 'literal') {
-      res += o.value;
-    } else if (o.type === 'variable') {
-      let resolved = _resolve(o);
-      if (resolved === undefined || res === null) {
-        return undefined;
-      } else {
-        res += resolved;
-      }
-    }
-  }
-  return res;
+  if (terminated) return null;
+  else return { type: 'word', value: parser.stringify(nodeArray) } as WordNode;
 }
