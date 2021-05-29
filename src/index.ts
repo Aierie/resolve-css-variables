@@ -103,21 +103,3 @@ export default function resolveCssVariables(content: string[], selector: string=
         failed: Object.keys(failed)
     }
 }
-
-// console.log(resolveCssVariables([
-//     `
-//       :root {
-//           --calculated: calc(var(--one) + calc(var(--two) * 2));
-//           --one: 1px;
-//           --two: 1rem;
-//       }
-//     `
-// ]));
-
-// console.log(resolveCssVariables([
-//   `
-//   :root {
-// 	  --theme-color: var(--light, white);
-// 	}
-//   `
-// ]))
