@@ -6,5 +6,9 @@ export default {
   output: {
     dir: 'dist'
   },
+  watch: {
+    include: ['src/**'],
+    exclude: ['node_modules/**']
+  },
   plugins: [typescript(), commonjs()],
 };
