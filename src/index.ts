@@ -5,13 +5,6 @@ import { parseString, resolveFromLookups } from './parse';
 import { Node } from 'postcss-value-parser';
 
 /**
- * A POJO that maps css variables to values
- */
-interface VariableDict<T=string> {
-  [variable: string]: T
-}
-
-/**
  * Checks whether a node parsed by @reworkcss/css is a css rule
  * 
  * @param {css.Node} node
@@ -49,8 +42,8 @@ function isVariable(declaration: css.Declaration) {
  * @param {string} [selector] Css selector to look for variables in. Has to be exact
  * @returns A map of variables to their values
  */
-function getVariablesFromStylesheet(stylesheet: css.Stylesheet, selector: string | undefined): VariableDict {
-    let res: VariableDict = {};
+function getVariablesFromStylesheet(stylesheet: css.Stylesheet, selector: string | undefined): Record<string, string> {
+    let res: Record<string, string> = {};
     for (const node of stylesheet.stylesheet!.rules) {
         if (isRule(node) && (
             !selector || node.selectors && node.selectors.length === 1 && node.selectors.includes(selector)
@@ -76,12 +69,12 @@ function getVariablesFromStylesheet(stylesheet: css.Stylesheet, selector: string
  * 
  * @param {string[]} content List of strings, in order, to parse for variables
  * @param {string} [selector=':root'] A selector to scope the search for variables 
- * @returns {{resolved: VariableDict, failed: string[]}} Resolved variables with absolute values + a list of the variables that failed to be resolved.
+ * @returns {{resolved: Record<string, string>, failed: string[]}} Resolved variables with absolute values + a list of the variables that failed to be resolved.
  */
-export default function resolveCssVariables(content: string[], selector: string=':root'): { raw: VariableDict, resolved: VariableDict, failed: string[] } {
-    const rawVariables = content.reduce((previous: VariableDict, contents: string) => ({ ...previous, ...getVariablesFromStylesheet(css.parse(contents), selector)}), {});
-    const resolved : VariableDict = {};
-    const failed: VariableDict<true> = {};
+export default function resolveCssVariables(content: string[], selector: string=':root'): { raw: Record<string, string>, resolved: Record<string, string>, failed: string[] } {
+    const rawVariables = content.reduce((previous: Record<string, string>, contents: string) => ({ ...previous, ...getVariablesFromStylesheet(css.parse(contents), selector)}), {});
+    const resolved : Record<string, string> = {};
+    const failed: Record<string, true> = {};
     const parsedVariables: Record<string, Node[]> = {};
     for (const variable in rawVariables) {
       parsedVariables[variable] = parseString(rawVariables[variable]);
