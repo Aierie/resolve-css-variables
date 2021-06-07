@@ -1,6 +1,6 @@
 {
   "name": "resolve-css-variables",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Package to resolve css variables given strings containing declarations.",
   "type": "module",
   "main": "dist/index.js",
