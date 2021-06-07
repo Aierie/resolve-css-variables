@@ -14,6 +14,7 @@
   "author": "Aierie",
   "license": "ISC",
   "dependencies": {
+    "@rollup/plugin-node-resolve": "^13.0.0",
     "@types/css": "^0.0.31",
     "css": "^3.0.0",
     "postcss-value-parser": "^4.1.0",
